@@ -1,0 +1,25 @@
+{
+  "name": "dprc",
+  "version": "1.0.0",
+  "description": "DPRC Discord Bot",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "DPRC"
+  },
+  "keywords": [
+    "DPRC"
+  ],
+  "author": "mgsmemebook",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@discordjs/builders": "^1.4.0",
+    "@discordjs/rest": "^1.5.0",
+    "discord-api-types": "^0.37.30",
+    "discord.js": "^14.7.1",
+    "dotenv": "^16.0.3"
+  }
+}
