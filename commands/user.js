@@ -14,7 +14,7 @@ module.exports = {
 		// interaction.member is the GuildMember object, which represents the user in the specific guild
 		const t = interaction.options.getUser('user') ?? interaction.user;
 		const m = interaction.options.getMember('user') ?? interaction.member;
-        
+
 		const embedMessage = new EmbedBuilder()
 			.setTitle('User info of ' + t.username)
 			.setAuthor({ name: interaction.user.username, iconURL: await interaction.user.avatarURL() })

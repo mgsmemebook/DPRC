@@ -21,7 +21,7 @@ module.exports = {
 		const embedMessage = new EmbedBuilder()
 			.setTitle(`Ban ${t.username}?`)
 			.setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
-			.setDescription(`${interaction.user.username} wants to ban ${t.username}. Reason: ${reason}`);
+			.setDescription(`${interaction.user} wants to ban ${t}. Reason: ${reason}`);
 
 		const button = new ActionRowBuilder()
 			.addComponents(

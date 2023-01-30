@@ -6,6 +6,7 @@ module.exports = {
 		.setDescription('Provides information about the current server.'),
 	async execute(interaction) {
 		// interaction.guild is the object representing the Guild in which the command was run
+
 		const embedMessage = new EmbedBuilder()
 			.setTitle('Server info')
 			.setAuthor({ name: interaction.guild.name})

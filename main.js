@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, Events, GatewayIntentBits, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { token } = require('./config.json');
 
 
@@ -56,26 +56,33 @@ client.on(Events.InteractionCreate, async interaction => {
 	else if(interaction.isButton()) {
 		console.log("Button interaction: " + interaction);
 
+		await interaction.deferUpdate();
+
 		if(interaction.customId == "ban-button") {
-			const embedMessage = new EmbedBuilder() // To do: Get target user
+			/*const embedMessage = new EmbedBuilder() // To do: Get target user
 				.setTitle(`Ban ${t.username}?`)
 				.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
 				.setDescription(`${t.username} was banned by ${interaction.user.username} and . Reason: ${reason}`);
-
+			*/
 			const button = new ActionRowBuilder()
 				.addComponents(
 					new ButtonBuilder()
 						.setCustomId('ban-button')
 						.setLabel('Accept')
-						.setStyle(ButtonStyle.Primary),
+						.setStyle(ButtonStyle.Primary)
+						.setDisabled(true),
 				);
 
-			await interaction.message.edit({  });
+			await interaction.message.edit({ components: [button] });
 		}
 	}
     
 });
 
+
+
+
+module.exports = client;
 
 
 // Login to Discord with your client's token
