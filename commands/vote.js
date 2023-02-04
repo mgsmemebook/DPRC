@@ -27,11 +27,11 @@ module.exports = {
             )    
         ),
 	async execute(interaction) {
-        let message = "";
+        let message;
         if(await keyv.voters().has(interaction.user.id)) {
             // Member already voted
 			message = `You already voted!`;
-        } else if(functions.getTime() - (await keyv.election().get("last_election") ?? 0) > config.election_cooldown * 3600 * 1000 || keyv.election().get("type") > 0) {
+        } else if(functions.getTime() - (await keyv.election().get("last_election") ?? 0) > config.election_cooldown * 3600 * 1000 || (await keyv.election().get("type") ?? 0) != 0) {
 
             const client = require("../main");
 			const channel = client.channels.cache.get(config.voteChannel);
@@ -39,7 +39,7 @@ module.exports = {
             functions.deleteMessages(channel, 10);
 
             if(interaction.options.getSubcommand() == 'reelection') {
-                if(await keyv.election().get("type") == 0) {
+                if((await keyv.election().get("type") ?? 0) == 0) {
                     // There is no ongoing election
                     await keyv.election().set("type", 1);
                     await keyv.election().set("last_election", functions.getTime()); 
@@ -61,10 +61,15 @@ module.exports = {
                     await keyv.election().set("no", no);
                 }
 
+
+                const endDate = await keyv.election().get("last_election") + (config.election_duration*3600*1000);
+
                 const embedMessage = new EmbedBuilder()
 				    .setTitle(`Re-election vote`)
 				    .setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
 				    .setDescription(`Should the president be re-elected?\n${yes+no} total votes.`)
+                    .setFooter({ text: `Election ends: ` })
+                    .setTimestamp(endDate)
                     .addFields(
                         { name: "Yes", value: `${yes} votes (${percentage(yes, yes+no)}).`, inline: true},
                         { name: "No", value: `${no} votes (${percentage(no, yes+no)}).`, inline: true},
@@ -75,33 +80,39 @@ module.exports = {
                 message = `Voted successfully!`;
 
 
-            } else if(interaction.options.getSubcommand() == 'president' && await keyv.election().get("type") == 2) {
+            } else if(interaction.options.getSubcommand() == 'president' && (await keyv.election().get("type") ?? 0) == 2) {
                 await keyv.voters().set(interaction.user.id);
 
-                const candidate = interaction.options.getUser('user').id;
-                const candidateVotes = await keyv.election().get(candidate) ?? 1;
-                const total = await keyv.election().get("total") ?? 0;
+                let candidate = interaction.options.getUser('user').id;
+                let candidateVotes = await keyv.election().get(candidate) ?? 1;
+                let total = await keyv.election().get("total") ?? 0;
                 total++;
+                candidateVotes++;
 
                 await keyv.election().set(candidate, candidateVotes);
                 await keyv.election().set("total", total);
 
-                const candidates = new Map();
+                let candidates = new Map();
                 const otherKeys = [ "no", "yes", "type", "last_election", "total" ];
-                for(const entry of keyv.election().iterator) {
+                for(let entry of keyv.election().iterator) {
                     if(otherKeys.includes(entry[0])) continue;
                     candidates.set(entry[0], entry[1]);
                 }
                 candidates = new Map([...candidates.entries()].sort((a, b) => b[1] - a[1]));
 
+
+                const endDate = await keyv.election().get("last_election") + (config.election_duration*3600*1000);
+                
                 const embedMessage = new EmbedBuilder()
 				    .setTitle(`Presidential vote`)
 				    .setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
+                    .setFooter({ text: `Election ends: ` })
+                    .setTimestamp(endDate)
 				    .setDescription(`These are the top 10 candidates.`);
 
                 const values = candidates.values(); const keys = candidates.keys(); 
-                const votes = null; candidate = null;
-                for(const i = 0; i < 10; i++) {
+                let votes = null; candidate = null;
+                for(let i = 0; i < 10; i++) {
                     candidate = await interaction.guild.members.fetch(keys.next().value);
                     votes = values.next().value;
                     embedMessage.addFields({ name: candidate, value: `${votes} votes (${percentage(votes, total)})`, inline: true });
@@ -110,15 +121,18 @@ module.exports = {
                 await channel.send({ embeds: [embedMessage] });
 
                 message = `Voted successfully!`;
+            } else {
+                message = `There is no ongoing election.\nA re-election needs to be voted for first.`;
             }
-        } else {
-            // Vote cooldown
+        } else if((await keyv.election().get("type") ?? 0) == 0) {
 			message = `You have to wait for the vote cooldown to finish!`;
+        } else {
+			message = `There is another election ongoing!`;
         }
         await interaction.reply({ content: message, ephemeral: true });
     },
 };
 
 function percentage(a, total) {
-    return ((a / total) * 100) + "%";
+    return ((a / total) * 100).toFixed(2) + "%";
 }

@@ -15,13 +15,16 @@ module.exports = {
 		const t = interaction.options.getUser('user') ?? interaction.user;
 		const m = interaction.options.getMember('user') ?? interaction.member;
 
+		const tdate = new Date(t.createdTimestamp).toDateString();
+		const mdate = new Date(m.joinedTimestamp).toDateString();
+
 		const embedMessage = new EmbedBuilder()
 			.setTitle('User info of ' + t.username)
 			.setAuthor({ name: interaction.user.username, iconURL: await interaction.user.avatarURL() })
 			.setThumbnail(await t.avatarURL())
 			.addFields(
-				{ name: 'created account at', value: `\`${t.createdAt}\`` },
-				{ name: 'joined server at', value: `\`${m.joinedAt}\`` },
+				{ name: 'created account at', value: `\`${tdate}\`` },
+				{ name: 'joined server at', value: `\`${mdate}\`` },
 				{ name: 'id', value: `${t.id}` },
 			)
 			.setImage(await t.bannerURL());

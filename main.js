@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { Client, Events, GatewayIntentBits, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { Client, Events, GatewayIntentBits, Collection, EmbedBuilder } = require('discord.js');
 const config = require('./config.json');
 const election_handler = require("./election-handler");
 const functions = require("./functions");
@@ -23,20 +23,33 @@ const keyv = require("./keyv");
 
 // When the client is ready, run this code (only once)
 // We use 'c' for the event parameter to keep it separate from the already defined 'client'
-client.once(Events.ClientReady, c => {
+client.once(Events.ClientReady, async c => {
 	console.log(`${c.user.username} started!`);
 
-	if(keyv.election().get("type") == 1) {
-		const elapsed = functions.getTime() - (keyv.election().get("last_election") ?? 0);
-		if(elapsed < config.reelection_duration) {
-			const left = config.reelection_duration - elapsed;
-			election_handler.reelection_timer(channel, i, left);
+	const type = await keyv.election().get("type");
+	if(type == 1) {
+		const elapsed = functions.getTime() - (await keyv.election().get("last_election") ?? 0);
+		console.log("Election time elapsed: " + (elapsed / 1000 / 60).toFixed(2) + " min");
+		const channel = client.channels.cache.get(config.voteChannel);
+		
+		const election_duration = config.reelection_duration * 1000 * 3600;
+		if(elapsed < election_duration) {
+			const left = election_duration - elapsed;
+			election_handler.reelection_timer(channel, c.guilds.fetch(config.guildId), left);
+
+			console.log("Election time left: " + (left / 1000 / 60).toFixed(2) + " min");
 		}
-	} else if(keyv.election().get("type") == 2) {
-		const elapsed = functions.getTime() - (keyv.election().get("last_election") ?? 0);
-		if(elapsed < config.election_duration) {
-			const left = config.election_duration - elapsed;
+	} else if(type == 2) {
+		const elapsed = functions.getTime() - (await keyv.election().get("last_election") ?? 0);
+		console.log("Election time elapsed: " + (elapsed / 1000 / 60).toFixed(2) + " min");
+		const channel = client.channels.cache.get(config.voteChannel);
+
+		const election_duration = config.election_duration * 1000 * 3600;
+		if(elapsed < election_duration) {
+			const left = election_duration - elapsed;
 			election_handler.presidential_timer(channel, c.guilds.fetch(config.guildId), left);
+
+			console.log("Election time left: " + (left / 1000 / 60).toFixed(2) + " min");
 		}
 	} 
 });
@@ -62,6 +75,7 @@ for (const file of commandFiles) {
 
 // Interactions
 client.on(Events.InteractionCreate, async interaction => {
+	//console.log("Interaction: " + interaction);
 	if (interaction.isChatInputCommand()) {
 		const command = interaction.client.commands.get(interaction.commandName);
 
@@ -78,7 +92,6 @@ client.on(Events.InteractionCreate, async interaction => {
 		}
 	} 
 	else if(interaction.isButton()) {
-		console.log("Button interaction: " + interaction);
 
 		await interaction.deferUpdate();
 
@@ -92,52 +105,39 @@ client.on(Events.InteractionCreate, async interaction => {
 				return; 
 			}
 
-			const embedMessage = new EmbedBuilder()
-				.setTitle(`Ban ${t.username}?`)
-				.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-				.addFields(
-					{ name: `${t} was banned by ${u}`, value: `Reason: ${reason}` },
-				);
-			
-			const button = new ActionRowBuilder()
-				.addComponents(
-					new ButtonBuilder()
-						.setCustomId('ban-button')
-						.setLabel('Accept')
-						.setStyle(ButtonStyle.Primary)
-						.setDisabled(true),
-				);
-
-			const channel = client.channels.cache.get(config.exileLogChannel);
+			const channel = client.channels.cache.get(config.banLogChannel);
 			const logEmbed = new EmbedBuilder()
-				.setTitle(`Exiled ${t.username}`)
+				.setTitle(`Banned ${t.username}`)
 				.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-				.setDescription(`${interaction.user} exiled ${t}. \nReason: ${reason}`);
+				.setDescription(`${interaction.user} banned ${t}. \nReason: ${reason}`);
 	
 
-			interaction.guild.members.ban(t);
+			await interaction.guild.members.ban(t);
 
 			await channel.send({ embeds: [logEmbed] });
 
-			await interaction.message.edit({ components: [button], embeds: [embedMessage] });
+			await interaction.message.delete();
 		}
 	}
     
 });
 
-client.on('guildMemberAdd', member => {
-	if(keyv.exiled().get(member.id)) {
-		member.roles.set(member.guild.roles.cache.find(role => role.name == "Exiled"));
+client.on(Events.GuildMemberAdd, async member => {
+	const guild = member.guild;
+	if(await keyv.exiled().get(member.id)) {
+		const role = await guild.roles.fetch(config.exiledRole);
+		await member.roles.add(role);
 	} else {
-		member.roles.set(member.guild.roles.cache.find(role => role.name == "Citizen"));
+		const role = await guild.roles.fetch(config.citizenRole);
+		await member.roles.add(role);
 		
 		const welcomeEmbed = new EmbedBuilder()
 			.setTitle(`Welcome ${member.displayName}`)
-			.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
+			.setAuthor({ name: await member.guild.name, iconURL: await member.guild.iconURL() })
 			.setDescription(`Welcome to ${member.guild.name}, ${member}! \nEnjoy your stay!`);
 
 		const channel = client.channels.cache.get(config.welcomeChannel);
-		channel.send({ embeds: [welcomeEmbed] });
+		await channel.send({ embeds: [welcomeEmbed] });
 	}
 })
 

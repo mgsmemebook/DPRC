@@ -1,4 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const config = require('../config.json');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -27,13 +28,13 @@ module.exports = {
 			await interaction.reply({ content: "You cannot ban this member!", ephemeral: true });
 		} else {
 			const embedMessage = new EmbedBuilder()
-			.setTitle(`Ban ${t.username}?`)
-			.setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
-			.addFields(
-				{ name: 'Executed by', value: `${interaction.user}` },
-				{ name: 'User to ban', value: `${t}` },
-				{ name: 'Reason', value: reason },
-			);
+				.setTitle(`Ban ${t.username}?`)
+				.setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
+				.addFields(
+					{ name: 'Executed by', value: `${interaction.user}` },
+					{ name: 'User to ban', value: `${t}` },
+					{ name: 'Reason', value: reason },
+				);
 
 			const button = new ActionRowBuilder()
 			.addComponents(
@@ -43,7 +44,11 @@ module.exports = {
 					.setStyle(ButtonStyle.Primary),
 			);
 		
-			await interaction.reply({ embeds: [embedMessage], ephemeral: false, components: [button] });
+			const client = require("../main");
+			const channel = client.channels.cache.get(config.banRequestChannel);
+			await channel.send({ embeds: [embedMessage], components: [button] });
+
+			await interaction.reply({ content: "Request sent!", ephemeral: true })
 		}
 	},
 };

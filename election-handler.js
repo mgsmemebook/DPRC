@@ -23,10 +23,15 @@ class elections {
 
                 functions.deleteMessages(channel, 5);
 
+
+                const endDate = await keyv.election().get("last_election") + (config.election_duration*3600*1000);
+
                 const embedMessage = new EmbedBuilder()
                     .setTitle(`Presidential vote`)
                     .setAuthor({ name: guild.name, iconURL: guild.iconURL() })
                     .setDescription(`These are the top 10 candidates.`)
+                    .setFooter({ text: `Election ends: ` })
+                    .setTimestamp(endDate)
                     .addFields({ name: "Nobody has been voted yet!" });
 
                 await channel.send({ embeds: [embedMessage] });

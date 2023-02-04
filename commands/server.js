@@ -7,14 +7,16 @@ module.exports = {
 	async execute(interaction) {
 		// interaction.guild is the object representing the Guild in which the command was run
 
+		const date = new Date(interaction.guild.createdTimestamp).toDateString();
+
 		const embedMessage = new EmbedBuilder()
 			.setTitle('Server info')
 			.setAuthor({ name: interaction.guild.name})
 			.setThumbnail(await interaction.guild.iconURL())
 			.addFields(
-				{ name: 'owner', value: `${await interaction.guild.fetchOwner().user.username}` },
+				{ name: 'owner', value: `${await interaction.guild.fetchOwner()}` },
 				{ name: 'member count', value: `${interaction.guild.memberCount}` },
-				{ name: 'created at', value: `\`${interaction.guild.createdAt}\`` },
+				{ name: 'created at', value: `\`${date}\`` },
 				{ name: 'verification level', value: `${interaction.guild.verificationLevel}` },
 				{ name: 'id', value: `${interaction.guild.id}` },
 			)
