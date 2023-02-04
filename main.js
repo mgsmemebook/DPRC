@@ -4,9 +4,17 @@ const path = require('node:path');
 
 const { Client, Events, GatewayIntentBits, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const config = require('./config.json');
+const election_handler = require("./election-handler");
+const functions = require("./functions");
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [ 
+	GatewayIntentBits.Guilds, 
+	GatewayIntentBits.GuildMembers, 
+	GatewayIntentBits.DirectMessages, 
+	GatewayIntentBits.GuildMessages, 
+	GatewayIntentBits.GuildModeration
+] });
 
 // Keyv
 const keyv = require("./keyv");
@@ -17,6 +25,20 @@ const keyv = require("./keyv");
 // We use 'c' for the event parameter to keep it separate from the already defined 'client'
 client.once(Events.ClientReady, c => {
 	console.log(`${c.user.username} started!`);
+
+	if(keyv.election().get("type") == 1) {
+		const elapsed = functions.getTime() - (keyv.election().get("last_election") ?? 0);
+		if(elapsed < config.reelection_duration) {
+			const left = config.reelection_duration - elapsed;
+			election_handler.reelection_timer(channel, i, left);
+		}
+	} else if(keyv.election().get("type") == 2) {
+		const elapsed = functions.getTime() - (keyv.election().get("last_election") ?? 0);
+		if(elapsed < config.election_duration) {
+			const left = config.election_duration - elapsed;
+			election_handler.presidential_timer(channel, c.guilds.fetch(config.guildId), left);
+		}
+	} 
 });
 
 
@@ -110,9 +132,12 @@ client.on('guildMemberAdd', member => {
 		member.roles.set(member.guild.roles.cache.find(role => role.name == "Citizen"));
 		
 		const welcomeEmbed = new EmbedBuilder()
-		.setTitle(`Welcome ${member.displayName}`)
-		.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-		.setDescription(`Welcome to ${member.guild.name}, ${member}! \nEnjoy your stay!`);
+			.setTitle(`Welcome ${member.displayName}`)
+			.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
+			.setDescription(`Welcome to ${member.guild.name}, ${member}! \nEnjoy your stay!`);
+
+		const channel = client.channels.cache.get(config.welcomeChannel);
+		channel.send({ embeds: [welcomeEmbed] });
 	}
 })
 

@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const config = require('../config.json');
 const keyv = require("../keyv");
+const functions = require("../functions");
+const election_handler = require("../election-handler");
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -25,129 +27,31 @@ module.exports = {
             )    
         ),
 	async execute(interaction) {
+        let message = "";
         if(await keyv.voters().has(interaction.user.id)) {
             // Member already voted
 			message = `You already voted!`;
-        } else if(await keyv.election().get("last_election") - getTime() > config.election_cooldown * 3600 * 1000 || keyv.election().get("type") > 0) {
+        } else if(functions.getTime() - (await keyv.election().get("last_election") ?? 0) > config.election_cooldown * 3600 * 1000 || keyv.election().get("type") > 0) {
 
             const client = require("../main");
-			const channel = client.channels.cache.get(config.exileLogChannel);
+			const channel = client.channels.cache.get(config.voteChannel);
 
-            async () => {
-                let fetched;
-                do {
-                    fetched = await channel.fetchMessages({limit: 5});
-                    message.channel.bulkDelete(fetched);
-                }
-                while(fetched.size >= 2);
-            }
+            functions.deleteMessages(channel, 10);
 
             if(interaction.options.getSubcommand() == 'reelection') {
                 if(await keyv.election().get("type") == 0) {
+                    // There is no ongoing election
                     await keyv.election().set("type", 1);
+                    await keyv.election().set("last_election", functions.getTime()); 
+                    // Reelection begins
 
-                    setTimeout(async () => {
-                        await keyv.voters().clear();
-                        if(keyv.election().get("yes") <= await keyv.election().get("no")) {
-                            await keyv.election().clear();
-                            await keyv.election().set("last_election", getTime()); 
-                            await keyv.election().set("type", 0);
-                            
-                            async () => {
-                                let fetched;
-                                do {
-                                    fetched = await channel.fetchMessages({limit: 5});
-                                    await message.channel.bulkDelete(fetched);
-                                }
-                                while(fetched.size >= 2);
-                            }
-                            return;
-                        }
-
-                        await keyv.election().clear();
-                        await keyv.election().set("type", 2);
-
-                        async () => {
-                            let fetched;
-                            do {
-                                fetched = await channel.fetchMessages({limit: 5});
-                                await message.channel.bulkDelete(fetched);
-                            }
-                            while(fetched.size >= 2);
-                        }
-
-                        const embedMessage = new EmbedBuilder()
-                            .setTitle(`Presidential vote`)
-                            .setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-                            .setDescription(`These are the top 10 candidates.`)
-                            .addFields({ name: "Nobody has been voted yet!" });
-
-                        await channel.send({ embeds: [embedMessage] });
-
-                        setTimeout(async () => {
-                            const total = keyv.election().get("total") ?? 0;
-
-                            await keyv.voters().clear();
-                            await keyv.election().clear();
-                            await keyv.election().set("last_election", getTime()); 
-                            await keyv.election().set("type", 0);
-
-                            async () => {
-                                let fetched;
-                                do {
-                                    fetched = await channel.fetchMessages({limit: 5});
-                                    await message.channel.bulkDelete(fetched);
-                                }
-                                while(fetched.size >= 2);
-                            }
-
-                            if(total == 0) {
-                                const embedMessage = new EmbedBuilder()
-                                    .setTitle(`Presidential vote`)
-                                    .setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-                                    .setDescription(`The presidential vote is over.\nNothing changes, because nobody voted.`);
-                                
-                                    await channel.send({ embeds: [embedMessage] });
-                            } else {
-
-                                const candidates = new Map();
-                                const otherKeys = [ "no", "yes", "type", "last_election", "total" ];
-                                for(const entry of keyv.election().iterator) {
-                                    if(otherKeys.includes(entry[0])) continue;
-                                    candidates.set(entry[0], entry[1]);
-                                }
-                                candidates = new Map([...candidates.entries()].sort((a, b) => b[1] - a[1]));
-    
-                                const winner = interaction.guild.members.fetch(candidates.keys().next().value);
-                                const votes = candidates.values().next().value;
-                                const percent = percentage(votes, total);
-    
-                                const embedMessage = new EmbedBuilder()
-                                    .setTitle(`Presidential vote`)
-                                    .setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-                                    .setDescription(`The presidential vote is over.\nThe winner is ${winner.displayName} with ${votes} votes (${percent}).`);  
-                                
-                                await channel.send({ embeds: [embedMessage] });
-
-                                const role = await interaction.guild.roles.get(config.presidentRole);
-                                await role.members.forEach(member => {
-                                    member.roles.remove(role);
-                                    member.send("You have been voted out of office.");
-                                });
-
-                                winner.roles.add(role);
-                                winner.send("Congratulations!\nYou have been elected for president!");
-                            }
-
-                        }, config.reelection_duration * 3600 * 1000);
-
-                    }, config.reelection_duration * 3600 * 1000);
+                    election_handler.reelection_timer(channel, interaction.guild, config.reelection_duration * 3600 * 1000);
                 }
 
                 await keyv.voters().set(interaction.user.id);
 
-                const yes = await keyv.election().get("yes") ?? 0;
-                const no = await keyv.election().get("no") ?? 0;
+                let yes = await keyv.election().get("yes") ?? 0;
+                let no = await keyv.election().get("no") ?? 0;
 
                 if(interaction.options.getBoolean('reelect')) {
                     yes++;

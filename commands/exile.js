@@ -38,7 +38,7 @@ module.exports = {
 	
 			message = `Exiled ${t.username}!\nReason: ${reason}`;
 			
-			interaction.options.getMember('user').roles.set([ guild.roles.cache.find(role => role.name == "Exiled") ]);
+			interaction.options.getMember('user').roles.set([ interaction.guild.roles.cache.find(role => role.name == "Exiled") ]);
 
 			await keyv.exiled().set(t.id, true);
 
