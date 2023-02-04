@@ -3,11 +3,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { Client, Events, GatewayIntentBits, Collection, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const { token } = require('./config.json');
-
+const config = require('./config.json');
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+// Keyv
+const keyv = require("./keyv");
 
 
 
@@ -59,11 +61,22 @@ client.on(Events.InteractionCreate, async interaction => {
 		await interaction.deferUpdate();
 
 		if(interaction.customId == "ban-button") {
-			/*const embedMessage = new EmbedBuilder() // To do: Get target user
+			const cint = interaction.message.embeds[0].fields;
+			const u = await client.users.fetch(cint[0].value.replace(/[<@>\s]/g, ''));
+			const t = await client.users.fetch(cint[1].value.replace(/[<@>\s]/g, ''));
+			const reason = cint[2].value;
+
+			if(!await interaction.member.roles.cache.has(config.banAcceptRoles) || interaction.user == t) { 
+				return; 
+			}
+
+			const embedMessage = new EmbedBuilder()
 				.setTitle(`Ban ${t.username}?`)
 				.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-				.setDescription(`${t.username} was banned by ${interaction.user.username} and . Reason: ${reason}`);
-			*/
+				.addFields(
+					{ name: `${t} was banned by ${u}`, value: `Reason: ${reason}` },
+				);
+			
 			const button = new ActionRowBuilder()
 				.addComponents(
 					new ButtonBuilder()
@@ -73,11 +86,35 @@ client.on(Events.InteractionCreate, async interaction => {
 						.setDisabled(true),
 				);
 
-			await interaction.message.edit({ components: [button] });
+			const channel = client.channels.cache.get(config.exileLogChannel);
+			const logEmbed = new EmbedBuilder()
+				.setTitle(`Exiled ${t.username}`)
+				.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
+				.setDescription(`${interaction.user} exiled ${t}. \nReason: ${reason}`);
+	
+
+			interaction.guild.members.ban(t);
+
+			await channel.send({ embeds: [logEmbed] });
+
+			await interaction.message.edit({ components: [button], embeds: [embedMessage] });
 		}
 	}
     
 });
+
+client.on('guildMemberAdd', member => {
+	if(keyv.exiled().get(member.id)) {
+		member.roles.set(member.guild.roles.cache.find(role => role.name == "Exiled"));
+	} else {
+		member.roles.set(member.guild.roles.cache.find(role => role.name == "Citizen"));
+		
+		const welcomeEmbed = new EmbedBuilder()
+		.setTitle(`Welcome ${member.displayName}`)
+		.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
+		.setDescription(`Welcome to ${member.guild.name}, ${member}! \nEnjoy your stay!`);
+	}
+})
 
 
 
@@ -86,4 +123,4 @@ module.exports = client;
 
 
 // Login to Discord with your client's token
-client.login(token);
+client.login(config.token);
