@@ -28,6 +28,7 @@ module.exports = {
         ),
 	async execute(interaction) {
         let message;
+        await interaction.deferReply({ephemeral: true});
         if(await keyv.voters().has(interaction.user.id)) {
             // Member already voted
 			message = `You already voted!`;
@@ -84,7 +85,7 @@ module.exports = {
                 await keyv.voters().set(interaction.user.id);
 
                 let candidate = interaction.options.getUser('user').id;
-                let candidateVotes = await keyv.election().get(candidate) ?? 1;
+                let candidateVotes = await keyv.election().get(candidate) ?? 0;
                 let total = await keyv.election().get("total") ?? 0;
                 total++;
                 candidateVotes++;
@@ -94,9 +95,9 @@ module.exports = {
 
                 let candidates = new Map();
                 const otherKeys = [ "no", "yes", "type", "last_election", "total" ];
-                for(let entry of keyv.election().iterator) {
-                    if(otherKeys.includes(entry[0])) continue;
-                    candidates.set(entry[0], entry[1]);
+                for await (const [ kcandidate, votes] of keyv.election().iterator()) {
+                    if(otherKeys.includes(kcandidate)) continue;
+                    candidates.set(kcandidate, votes);
                 }
                 candidates = new Map([...candidates.entries()].sort((a, b) => b[1] - a[1]));
 
@@ -108,14 +109,15 @@ module.exports = {
 				    .setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
                     .setFooter({ text: `Election ends: ` })
                     .setTimestamp(endDate)
-				    .setDescription(`These are the top 10 candidates.`);
+				    .setDescription(`These are the top 10 candidates:`);
 
                 const values = candidates.values(); const keys = candidates.keys(); 
                 let votes = null; candidate = null;
-                for(let i = 0; i < 10; i++) {
+                for(let i = 0; i < 9; i++) {
                     candidate = await interaction.guild.members.fetch(keys.next().value);
                     votes = values.next().value;
-                    embedMessage.addFields({ name: candidate, value: `${votes} votes (${percentage(votes, total)})`, inline: true });
+                    if(votes == undefined) { break; }
+                    embedMessage.addFields({ name: `${candidate.user.username}`, value: `${votes} votes (${percentage(votes, total)})`, inline: true });
                 }
 
                 await channel.send({ embeds: [embedMessage] });
@@ -129,7 +131,7 @@ module.exports = {
         } else {
 			message = `There is another election ongoing!`;
         }
-        await interaction.reply({ content: message, ephemeral: true });
+        await interaction.editReply({ content: message, ephemeral: true });
     },
 };
 

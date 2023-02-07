@@ -29,15 +29,17 @@ client.once(Events.ClientReady, async c => {
 	const type = await keyv.election().get("type");
 	if(type == 1) {
 		const elapsed = functions.getTime() - (await keyv.election().get("last_election") ?? 0);
-		console.log("Election time elapsed: " + (elapsed / 1000 / 60).toFixed(2) + " min");
+		console.log("Re-election time elapsed: " + (elapsed / 1000 / 60).toFixed(2) + " min");
 		const channel = client.channels.cache.get(config.voteChannel);
 		
 		const election_duration = config.reelection_duration * 1000 * 3600;
 		if(elapsed < election_duration) {
 			const left = election_duration - elapsed;
-			election_handler.reelection_timer(channel, c.guilds.fetch(config.guildId), left);
+			election_handler.reelection_timer(channel, c.guilds.cache.get(config.guildId), left);
 
 			console.log("Election time left: " + (left / 1000 / 60).toFixed(2) + " min");
+		} else {
+			election_handler.reelection_timer(channel, c.guilds.cache.get(config.guildId), 0);
 		}
 	} else if(type == 2) {
 		const elapsed = functions.getTime() - (await keyv.election().get("last_election") ?? 0);
@@ -47,9 +49,11 @@ client.once(Events.ClientReady, async c => {
 		const election_duration = config.election_duration * 1000 * 3600;
 		if(elapsed < election_duration) {
 			const left = election_duration - elapsed;
-			election_handler.presidential_timer(channel, c.guilds.fetch(config.guildId), left);
+			election_handler.presidential_timer(channel, c.guilds.cache.get(config.guildId), left);
 
 			console.log("Election time left: " + (left / 1000 / 60).toFixed(2) + " min");
+		} else {
+			election_handler.presidential_timer(channel, c.guilds.cache.get(config.guildId), 0);
 		}
 	} 
 });
@@ -88,7 +92,11 @@ client.on(Events.InteractionCreate, async interaction => {
 			await command.execute(interaction);
 		} catch (error) {
 			console.error(error);
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+			if(!interaction.isRepliable()) {
+				await interaction.editReply({ content: 'There was an error while executing this command!', ephemeral: true });
+			} else {
+				await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+			}
 		}
 	} 
 	else if(interaction.isButton()) {
