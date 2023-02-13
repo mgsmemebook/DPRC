@@ -1,6 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const config = require('../config.json');
-const client = require("../main");
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -9,18 +8,17 @@ module.exports = {
     .addStringOption(option =>
         option
             .setName('user')
-            .setDescription('The user(+tag) to unban')
+            .setDescription('The user (id) to unban')
             .setRequired(true)),
     async execute(interaction) {
-        let t, bannedname = interaction.options.getString('user');
+        await interaction.deferReply({ ephemeral: true });
+        const bannedid = interaction.options.getString('user');
         const bans = await interaction.guild.bans.fetch();
-        bans.forEach(ban => {
-            if(ban.user.tag == bannedname) {
-                t = ban.user;
-            }
-        });
-        if(t == null) {
-			await interaction.reply({ content: "User not found.", ephemeral: true });
+        
+        const t = (await bans.find(ban => ban.user.id === bannedid).user);
+
+        if(t == undefined) {
+			await interaction.editReply({ content: "User not found.", ephemeral: true });
         } else {
             const logEmbed = new EmbedBuilder()
 				.setTitle(`Unbanned ${t.username}`)
@@ -30,12 +28,12 @@ module.exports = {
 					{ name: 'Unbanned user', value: `${t.tag}\n${t.id}` },
 				);
                     
-			interaction.guild.members.unban(t);
+			await interaction.guild.bans.remove(t);
 
             const channel = interaction.guild.channels.cache.get(config.banLogChannel);
             await channel.send({ embeds: [logEmbed] });
 
-			await interaction.reply({ content: `Unbanned ${t.username}.`, ephemeral: true });
+			await interaction.editReply({ content: `Unbanned ${t.username}.`, ephemeral: true });
         }
     }
 }

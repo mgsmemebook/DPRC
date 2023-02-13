@@ -103,13 +103,15 @@ client.on(Events.InteractionCreate, async interaction => {
 
 		await interaction.deferUpdate();
 
+
 		if(interaction.customId == "ban-button") {
 			const cint = interaction.message.embeds[0].fields;
 			const u = await client.users.fetch(cint[0].value.replace(/[<@>\s]/g, ''));
 			const t = await client.users.fetch(cint[1].value.replace(/[<@>\s]/g, ''));
 			const reason = cint[2].value;
 
-			if(!await interaction.member.roles.cache.has(config.banAcceptRoles) || interaction.user == t) { 
+			if (!interaction.member.roles.cache.has(config.banAcceptRoles[0]) || interaction.user == t) { 		
+				console.log("button interaction: " + interaction.customId);
 				return; 
 			}
 
@@ -117,7 +119,7 @@ client.on(Events.InteractionCreate, async interaction => {
 			const logEmbed = new EmbedBuilder()
 				.setTitle(`Banned ${t.username}`)
 				.setAuthor({ name: interaction.guild.name, iconURL: interaction.guild.iconURL() })
-				.setDescription(`${interaction.user} banned ${t}. \nReason: ${reason}`);
+				.setDescription(`${interaction.user} and ${u} banned ${t}. \nReason: ${reason}\n${t.id}`);
 	
 
 			await interaction.guild.members.ban(t);
@@ -141,7 +143,7 @@ client.on(Events.GuildMemberAdd, async member => {
 		
 		const welcomeEmbed = new EmbedBuilder()
 			.setTitle(`Welcome ${member.displayName}`)
-			.setAuthor({ name: await member.guild.name, iconURL: await member.guild.iconURL() })
+			.setAuthor({ name: member.guild.name, iconURL: member.guild.iconURL() })
 			.setDescription(`Welcome to ${member.guild.name}, ${member}! \nEnjoy your stay!`);
 
 		const channel = client.channels.cache.get(config.welcomeChannel);

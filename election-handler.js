@@ -81,9 +81,12 @@ class elections {
                     const embedMessage = new EmbedBuilder()
                         .setTitle(`Presidential vote`)
                         .setAuthor({ name: guild.name, iconURL: guild.iconURL() })
-                        .setDescription(`The presidential vote is over.\nThe winner is ${winner.user.username} with ${votes} votes (${percent}).`);  
+                        .setDescription(`The presidential vote is over.\nThe winner is ${winner.user.username} with ${votes} votes (${percent}). 
+                        Vote participation was ${percentage(total, guild.memberCount)}.`);  
                 
+                    const newsChannel = guild.channels.cache.get(config.newsChannel);
                     await channel.send({ embeds: [embedMessage] });
+                    await newsChannel.send({ embeds: [embedMessage] });
     
                     const role = await guild.roles.fetch(config.presidentRole);
                     await role.members.forEach(member => {
@@ -94,13 +97,14 @@ class elections {
                     });
                     winner.roles.add(role);
                     winner.send("Congratulations!\nYou have been elected for president!");
-                    
+
                 } else {
                     // Too few votes
                     const embedMessage = new EmbedBuilder()
                         .setTitle(`Presidential vote`)
                         .setAuthor({ name: guild.name, iconURL: guild.iconURL() })
-                        .setDescription(`The presidential vote is over.\nThere is no winner, due to no candidate being voted more than 50%.\nMost popular candidate is ${winner.displayName} with ${votes} votes (${percent}).`);  
+                        .setDescription(`The presidential vote is over.\nThere is no winner, due to no candidate being voted more than 50%.\nMost popular candidate is ${winner.displayName} with ${votes} votes (${percent}). 
+                        Vote participation was ${percentage(total, guild.memberCount)}.`);  
             
                     await channel.send({ embeds: [embedMessage] });
                 }

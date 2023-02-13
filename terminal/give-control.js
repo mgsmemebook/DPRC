@@ -15,12 +15,16 @@ client.once(Events.ClientReady, async c => {
 		args[i] = val; // guildid, userid
 	});
 
-	const guild = await c.guilds.fetch(args[2]);
-	const m = await guild.members.fetch(args[3]);
-
-	const roles = guild.roles.cache.filter(role => role.name == "The State");
+	if(args[2] == null || args[3] == null) {
+		console.log("Syntax error: guildid, userid");
+	} else {
+		const guild = await c.guilds.fetch(args[2]);
+		const m = await guild.members.fetch(args[3]);
 	
-	await m.roles.add(roles.first());
+		const roles = guild.roles.cache.filter(role => role.name == "The State");
+		
+		await m.roles.add(roles.first());
+	}
 	client.destroy();
 });
 
