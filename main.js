@@ -110,7 +110,7 @@ client.on(Events.InteractionCreate, async interaction => {
 			const t = await client.users.fetch(cint[1].value.replace(/[<@>\s]/g, ''));
 			const reason = cint[2].value;
 
-			if (!interaction.member.roles.cache.has(config.banAcceptRoles[0]) || interaction.user == t) { 		
+			if (!config.banAcceptRoles.includes(interaction.member.roles.highest) || interaction.user == t) { 		
 				console.log("button interaction: " + interaction.customId);
 				return; 
 			}

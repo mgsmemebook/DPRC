@@ -19,7 +19,9 @@ module.exports = {
 
         if(t == undefined) {
 			await interaction.editReply({ content: "User not found.", ephemeral: true });
-        } else {
+        } else if(!config.unbanRoles.includes(interaction.user.role.highest.name)) {
+			await interaction.reply({ content: "You may not!", ephemeral: true });
+		} else {
             const logEmbed = new EmbedBuilder()
 				.setTitle(`Unbanned ${t.username}`)
 				.setAuthor({ name: interaction.guild.name, iconURL: await interaction.guild.iconURL() })
