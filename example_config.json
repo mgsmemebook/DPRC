@@ -15,6 +15,7 @@
 	"unbanRoles": [ "Name 1", "Name 2" ],
 	"exilePermRoles": [ "Name 1", "Name 2" ],
 	"promotePermRoles": [ "Name 1", "Name 2" ],
+	"demotePermRoles": [ "Name 1", "Name 2" ],
 	"presidentRole": "Name",
 	"judgeRole": "Judge",
 	"policeRole": "Police",
