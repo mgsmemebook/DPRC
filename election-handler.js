@@ -90,12 +90,12 @@ class elections {
     
                     const role = await guild.roles.fetch(config.presidentRole);
                     await role.members.forEach(member => {
-                        if(member != winner) {
-                        member.roles.remove(role);
+                        if(member.roles.cache.find(srole => srole.name == config.presidentRole) != undefined) {
+                        member.roles.set([ interaction.guild.roles.cache.find(srole => srole.name == config.citizenRole) ]);
                         member.send("You have been voted out of office.");
                         }
                     });
-                    winner.roles.add(role);
+                    winner.roles.set([role]);
                     winner.send("Congratulations!\nYou have been elected for president!");
 
                 } else {
